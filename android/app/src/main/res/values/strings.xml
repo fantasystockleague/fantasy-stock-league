@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">fantasy-stock-league</string>
+    <string name="title_activity_main">fantasy-stock-league</string>
+    <string name="package_name">com.fantasystockleague.app</string>
+    <string name="custom_url_scheme">com.fantasystockleague.app</string>
+</resources>

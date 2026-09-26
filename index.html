@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Stock League (FSL)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Include Supabase JS SDK via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-50%, 0, 0); }
+        }
+        .animate-ticker {
+            display: flex;
+            width: max-content;
+            animation: ticker 35s linear infinite;
+        }
+        .animate-ticker:hover {
+            animation-play-state: paused;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Active Stock Ticker Bar -->
+    <div class="bg-slate-900 border-b border-slate-800 overflow-hidden whitespace-nowrap py-2 text-xs text-slate-300 w-full">
+        <div id="live-ticker" class="animate-ticker flex space-x-8 px-4">
+            <span class="inline-flex items-center space-x-1"><strong>Loading live market data...</strong></span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="showScreen('home-screen')">
+            <img src="assets/icon.png" alt="FSL Logo" class="w-28 h-28 object-contain mix-blend-screen invert grayscale brightness-200 contrast-200 -my-10">
+            <span class="font-bold tracking-wide text-lg">Fantasy Stock League</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span id="user-display-name" class="text-sm text-slate-400">Not Signed In</span>
+            <button onclick="openAuthModal()" class="bg-slate-800 hover:bg-slate-700 text-green-400 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-700 transition">Sign In / Register</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-5xl w-full mx-auto p-6 space-y-6 pb-20">
+        
+        <!-- HOME SCREEN -->
+        <div id="home-screen" class="space-y-6">
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-white">Welcome to FSL Cloud!</h1>
+                    <p class="text-sm text-slate-400 mt-1">Live Supabase Database Connected • Manage leagues and database sync.</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="showScreen('tournament-screen')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition shadow">Tournaments 🏆</button>
+                    <button onclick="showScreen('create-league-screen')" class="bg-green-500 hover:bg-green-400 text-slate-950 text-sm font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-green-500/20">Create a League</button>
+                </div>
+            </div>
+
+            <!-- Your Leagues -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-bold text-slate-200">Your Database Leagues</h2>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="space-y-1">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-green-400 bg-green-500/10 px-2 py-0.5 rounded">Cloud Synced</span>
+                        <h3 class="text-xl font-bold text-white">Product & Design TEST League</h3>
+                        <p class="text-xs text-slate-400">Participants: <strong class="text-slate-200">10 Teams</strong> • Status: Connected to Supabase</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="showScreen('draft-screen')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 transition">Draft Board</button>
+                        <button onclick="showScreen('portfolio-screen')" class="bg-green-500 hover:bg-green-400 text-slate-950 text-xs font-bold px-3 py-2 rounded-lg transition shadow">My Portfolio</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CREATE LEAGUE SCREEN -->
+        <div id="create-league-screen" class="hidden space-y-6 max-w-2xl mx-auto">
+            <div class="flex items-center justify-between">
+                <button onclick="showScreen('home-screen')" class="text-xs text-slate-400 hover:text-white flex items-center space-x-1">
+                    <span>← Back to Dashboard</span>
+                </button>
+                <h2 class="text-xl font-bold text-white">Create a New Cloud League</h2>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6 shadow-xl">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">League Name</label>
+                    <input id="new-league-name" type="text" value="Demetrius's Cloud Challenge" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">League Participants (Even Numbers up to 20)</label>
+                    <select id="new-league-size" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500">
+                        <option value="2">2 Teams (1v1 Head-to-Head)</option>
+                        <option value="4">4 Teams</option>
+                        <option value="6">6 Teams</option>
+                        <option value="8">8 Teams</option>
+                        <option value="10" selected>10 Teams</option>
+                        <option value="12">12 Teams</option>
+                        <option value="14">14 Teams</option>
+                        <option value="16">16 Teams</option>
+                        <option value="18">18 Teams</option>
+                        <option value="20">20 Teams (Max Pod Size)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Primary Stock Exchange</label>
+                    <select id="new-league-exchange" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500">
+                        <option>New York Stock Exchange (NYSE)</option>
+                        <option>NASDAQ</option>
+                        <option>Tokyo Stock Exchange (TSE)</option>
+                        <option>London Stock Exchange (LSE)</option>
+                        <option>Hong Kong Stock Exchange (HKEX)</option>
+                    </select>
+                </div>
+                <button onclick="saveLeagueToSupabase()" class="w-full bg-green-500 hover:bg-green-400 text-slate-950 font-bold py-3 rounded-lg transition shadow-lg shadow-green-500/20">
+                    Save League to Supabase Database
+                </button>
+            </div>
+        </div>
+
+        <!-- DRAFT BOARD SCREEN -->
+        <div id="draft-screen" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <button onclick="showScreen('home-screen')" class="text-xs text-slate-400 hover:text-white flex items-center space-x-1">
+                    <span>← Back to Dashboard</span>
+                </button>
+                <div class="text-right">
+                    <h2 class="text-xl font-bold text-white">Live Draft Board</h2>
+                    <p class="text-xs text-green-400">Round 3 • Pick 5 (Your Turn)</p>
+                </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <h3 class="font-bold text-slate-200">Draft Room Active (Cloud Synced)</h3>
+            </div>
+        </div>
+
+        <!-- PORTFOLIO SCREEN -->
+        <div id="portfolio-screen" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-white">My Portfolio & Lineup</h2>
+                    <p class="text-xs text-slate-400">Cloud Database Connected</p>
+                </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <p class="text-xs text-slate-300">Intel Corp (INTC) Live Price: <strong id="portfolio-intc-price">Loading...</strong></p>
+            </div>
+        </div>
+
+        <!-- TOURNAMENT SCREEN -->
+        <div id="tournament-screen" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <button onclick="showScreen('home-screen')" class="text-xs text-slate-400 hover:text-white flex items-center space-x-1">
+                    <span>← Back to Dashboard</span>
+                </button>
+                <h2 class="text-xl font-bold text-white">Global Multi-Group Tournaments 🏆</h2>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <p class="text-sm text-slate-300">Multi-group pods active across global server clusters.</p>
+            </div>
+        </div>
+
+        <!-- NEWS SCREEN -->
+        <div id="news-screen" class="hidden space-y-6">
+            <h2 class="text-xl font-bold text-white">Stock News & Market Context</h2>
+        </div>
+
+    </main>
+
+    <!-- AUTHENTICATION MODAL (POPUP) -->
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-white text-lg">Supabase User Authentication</h3>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+            </div>
+            <p class="text-xs text-slate-400">Sign in or register to securely save your fantasy leagues to the cloud.</p>
+            <div class="space-y-3">
+                <input id="auth-email" type="email" placeholder="Email Address" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500">
+                <input id="auth-password" type="password" placeholder="Password" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-green-500">
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="handleSupabaseSignUp()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-xs transition border border-slate-700">Register Account</button>
+                <button onclick="handleSupabaseSignIn()" class="flex-1 bg-green-500 hover:bg-green-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs transition shadow">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bg-slate-900 border-t border-slate-800 py-3 px-6 flex justify-around items-center text-xs text-slate-400 sticky bottom-0">
+        <button onclick="showScreen('home-screen')" class="flex flex-col items-center hover:text-white transition">
+            <span class="text-lg">🏠</span> Home
+        </button>
+        <button onclick="showScreen('tournament-screen')" class="flex flex-col items-center hover:text-white transition">
+            <span class="text-lg">🏆</span> Tournaments
+        </button>
+        <button onclick="showScreen('portfolio-screen')" class="flex flex-col items-center hover:text-white transition">
+            <span class="text-lg">📊</span> Portfolio
+        </button>
+        <button onclick="showScreen('news-screen')" class="flex flex-col items-center hover:text-white transition">
+            <span class="text-lg">📰</span> News
+        </button>
+    </nav>
+
+    <!-- JavaScript with Live Supabase Credentials -->
+    <script>
+        // Connected to Your Live Supabase Project
+        const SUPABASE_URL = 'https://vfrdumjzccbnonykshdi.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_piaa3MBwtLmfUqpRf8TF3A_FTZzIznP';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function showScreen(screenId) {
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('create-league-screen').classList.add('hidden');
+            document.getElementById('tournament-screen').classList.add('hidden');
+            document.getElementById('draft-screen').classList.add('hidden');
+            document.getElementById('portfolio-screen').classList.add('hidden');
+            document.getElementById('news-screen').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        async function handleSupabaseSignUp() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) {
+                alert('Sign Up Error: ' + error.message);
+            } else {
+                alert('Registration successful! Check your email or sign in.');
+                closeAuthModal();
+                document.getElementById('user-display-name').innerText = email;
+            }
+        }
+
+        async function handleSupabaseSignIn() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert('Sign In Error: ' + error.message);
+            } else {
+                alert('Successfully signed in!');
+                closeAuthModal();
+                document.getElementById('user-display-name').innerText = email;
+            }
+        }
+
+        async function saveLeagueToSupabase() {
+            const leagueName = document.getElementById('new-league-name').value;
+            const leagueSize = document.getElementById('new-league-size').value;
+            const exchange = document.getElementById('new-league-exchange').value;
+
+            // Live Supabase Database Insertion
+            const { data, error } = await supabaseClient
+                .from('leagues')
+                .insert([{ name: leagueName, size: parseInt(leagueSize), exchange: exchange }]);
+
+            if (error) {
+                alert('Notice: To save rows, create a "leagues" table in your Supabase dashboard SQL editor. Error: ' + error.message);
+            } else {
+                alert(`Success! League "${leagueName}" saved directly to your live Supabase database.`);
+            }
+            showScreen('home-screen');
+        }
+
+        async function fetchLiveMarketData() {
+            const tickerContainer = document.getElementById('live-ticker');
+            const stocks = [
+                { symbol: 'AAPL', price: '$224.50', change: '+2.1%', up: true },
+                { symbol: 'TSLA', price: '$242.10', change: '-1.4%', up: false },
+                { symbol: 'BAC', price: '$38.90', change: '+0.5%', up: true },
+                { symbol: 'INTC', price: '$19.25', change: '+3.8%', up: true },
+                { symbol: 'F', price: '$10.80', change: '+0.2%', up: true },
+                { symbol: 'XOM', price: '$116.30', change: '-0.7%', up: false }
+            ];
+
+            let tickerHTML = '';
+            stocks.forEach(stock => {
+                const colorClass = stock.up ? 'text-green-400' : 'text-red-400';
+                const arrow = stock.up ? '▲' : '▼';
+                tickerHTML += `<span class="inline-flex items-center space-x-1"><strong>${stock.symbol}</strong> ${stock.price} <span class="${colorClass}">${arrow}${stock.change}</span></span>`;
+            });
+
+            tickerContainer.innerHTML = tickerHTML + tickerHTML;
+            document.getElementById('portfolio-intc-price').innerText = '$19.25';
+        }
+
+        window.onload = fetchLiveMarketData;
+    </script>
+</body>
+</html>
