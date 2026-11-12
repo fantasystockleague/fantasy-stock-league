@@ -13,10 +13,15 @@ jobs:
       - name: Check FSL Supabase connection
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "Supabase URL is missing."
+            exit 1
+          fi
+
           curl --fail --silent --show-error \
             --max-time 30 \
-            "${SUPABASE_URL}/rest/v1/" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" 
-    
+            "${SUPABASE_URL%/}/auth/v1/health"
+
+          echo ""
+          echo "Supabase Auth service is reachable."
